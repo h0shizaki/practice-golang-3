@@ -1,9 +1,10 @@
 # Practice GO lang with MongoDB
 
 How to run this repo  
->  Clone this repo.  
->  Run main.go   
+1.  Clone this repo.  
+2.  Run main.go  
+      
     ```
     go run main.go
-    ```  
->  Test api with postman or anything  
+    ```
+3.  Test api with postman or anything  

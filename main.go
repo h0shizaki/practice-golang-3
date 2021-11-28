@@ -98,6 +98,54 @@ func getPerson(res http.ResponseWriter, req *http.Request) {
 	json.NewEncoder(res).Encode(person)
 }
 
+func putPerson(res http.ResponseWriter, req *http.Request) {
+	res.Header().Set("Content-Type", "application/json")
+	var person Person
+
+	//Get request.body
+	json.NewDecoder(req.Body).Decode(&person)
+	// log.Println(person.ID)
+
+	filter := bson.D{{"_id", person.ID}}
+	update := bson.D{{"$set", bson.D{{"firstname", person.Firstname}, {"lastname", person.Lastname}}}}
+
+	collection := client.Database("mydb").Collection("people")
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+
+	_, err := collection.UpdateOne(ctx, filter, update)
+
+	if err != nil {
+		log.Print("ERROR")
+		res.WriteHeader(http.StatusInternalServerError)
+		res.Write([]byte(`{"message" : "` + err.Error() + `"}`))
+		return
+	}
+
+	json.NewEncoder(res).Encode(person)
+}
+
+func deletePerson(res http.ResponseWriter, req *http.Request) {
+	res.Header().Set("Content-Type", "application/json")
+	params := mux.Vars(req)
+	//get query parameter
+	id, _ := primitive.ObjectIDFromHex(params["id"])
+
+	collection := client.Database("mydb").Collection("people")
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+
+	result, err := collection.DeleteOne(ctx, bson.D{{"_id", id}})
+
+	if err != nil {
+		log.Print("ERROR")
+		res.WriteHeader(http.StatusInternalServerError)
+		res.Write([]byte(`{"message" : "` + err.Error() + `"}`))
+		return
+	}
+
+	json.NewEncoder(res).Encode(result)
+
+}
+
 func main() {
 	log.Println("Start server")
 
@@ -117,6 +165,8 @@ func main() {
 	router.HandleFunc("/people", getAllPerson).Methods("GET")
 	router.HandleFunc("/person/{id}", getPerson).Methods("GET")
 	router.HandleFunc("/person", createPerson).Methods("POST")
+	router.HandleFunc("/person/edit", putPerson).Methods("PUT")
+	router.HandleFunc("/delete/person/{id}", deletePerson).Methods("DELETE")
 
 	//Run
 	var port string = ":3030"

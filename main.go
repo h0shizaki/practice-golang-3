@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -98,20 +99,27 @@ func getPerson(res http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
-
 	log.Println("Start server")
-
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	client, _ = mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
 
 	router := mux.NewRouter()
 
+	//Conecct to Database
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	client, _ = mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+
+	//COR
+	header := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"})
+	methods := handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE"})
+	origin := handlers.AllowedOrigins([]string{"*"})
+
+	//Route
 	router.HandleFunc("/", sayHello).Methods("GET")
 	router.HandleFunc("/people", getAllPerson).Methods("GET")
 	router.HandleFunc("/person/{id}", getPerson).Methods("GET")
 	router.HandleFunc("/person", createPerson).Methods("POST")
 
+	//Run
 	var port string = ":3030"
 	log.Println("Server is running on port", port)
-	http.ListenAndServe(port, router)
+	http.ListenAndServe(port, handlers.CORS(header, methods, origin)(router))
 }

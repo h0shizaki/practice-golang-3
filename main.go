@@ -75,6 +75,28 @@ func getAllPerson(res http.ResponseWriter, req *http.Request) {
 	json.NewEncoder(res).Encode(people)
 }
 
+func getPerson(res http.ResponseWriter, req *http.Request) {
+	res.Header().Set("Conetent-Type", "application/json")
+	params := mux.Vars(req)
+	id, _ := primitive.ObjectIDFromHex(params["id"])
+	// log.Print(id)
+	var person Person
+
+	collection := client.Database("mydb").Collection("people")
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+
+	err := collection.FindOne(ctx, bson.M{"_id": id}).Decode(&person)
+
+	if err != nil {
+		log.Print("ERROR")
+		res.WriteHeader(http.StatusInternalServerError)
+		res.Write([]byte(`{"message" : "` + err.Error() + `"}`))
+		return
+	}
+
+	json.NewEncoder(res).Encode(person)
+}
+
 func main() {
 
 	log.Println("Start server")
@@ -86,6 +108,7 @@ func main() {
 
 	router.HandleFunc("/", sayHello).Methods("GET")
 	router.HandleFunc("/people", getAllPerson).Methods("GET")
+	router.HandleFunc("/person/{id}", getPerson).Methods("GET")
 	router.HandleFunc("/person", createPerson).Methods("POST")
 
 	var port string = ":3030"
